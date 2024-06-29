@@ -1,0 +1,6 @@
+type: static-library
+name: "ulib-yaml-json"
+
+deps:
+  - github:k2rate/ulib-json ^1.0.0
+  - vcpkg:yaml-cpp
