@@ -5,63 +5,66 @@ namespace ulib
 {
     namespace detail
     {
-        json convert_scalar(const YAML::Node &node)
+        void convert_scalar(json &dest, const YAML::Node &node)
         {
             if (bool bool_value; YAML::convert<bool>::decode(node, bool_value))
             {
-                return json{bool_value};
+                dest = json{bool_value};
+                return;
             }
 
             if (int64_t int_value; YAML::convert<int64_t>::decode(node, int_value))
             {
-                return json{int_value};
+                dest = json{int_value};
+                return;
             }
 
             if (double double_value; YAML::convert<double>::decode(node, double_value))
             {
-                return json{double_value};
+                dest = json{double_value};
+                return;
             }
 
-            return json{node.Scalar()};
+            dest = json{node.Scalar()};
         }
 
-        json convert_node(const YAML::Node &node);
-        json convert_map(const YAML::Node &node)
+        void convert_node(json &dest, const YAML::Node &node);
+        void convert_map(json &dest, const YAML::Node &node)
         {
-            json value;
             for (auto it = node.begin(); it != node.end(); it++)
             {
-                value[it->first.as<std::string>()] = convert_node(it->second);
+                auto &field = dest[it->first.as<std::string>()];
+                convert_node(field, it->second);
             }
-
-            return value;
         }
 
-        json convert_sequence(const YAML::Node &node)
+        void convert_sequence(json &dest, const YAML::Node &node)
         {
-            json value;
             for (auto it = node.begin(); it != node.end(); it++)
             {
-                value.push_back() = convert_node(*it);
+                convert_node(dest.push_back(), *it);
             }
-
-            return value;
         }
 
-        json convert_node(const YAML::Node &node)
+        void convert_node(json &dest, const YAML::Node &node)
         {
             switch (node.Type())
             {
             case YAML::NodeType::Map:
-                return convert_map(node);
+                convert_map(dest, node);
+                return;
             case YAML::NodeType::Sequence:
-                return convert_sequence(node);
+                convert_sequence(dest, node);
+                return;
             case YAML::NodeType::Scalar:
-                return detail::convert_scalar(node);
+                detail::convert_scalar(dest, node);
+                return;
             case YAML::NodeType::Null:
-                return json{};
+                dest = json{};
+                return;
             case YAML::NodeType::Undefined:
-                return json{};
+                dest = json{};
+                return;
             default:
                 throw ulib::json::exception{"Invalid YAML NodeType"};
             }
@@ -76,6 +79,8 @@ namespace ulib
         // data.MarkZeroEnd();
 
         YAML::Node node = YAML::Load(data);
-        return detail::convert_node(node);
+        json value;
+        detail::convert_node(value, node);
+        return value;
     }
 } // namespace ulib
